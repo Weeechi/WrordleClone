@@ -1,0 +1,167 @@
+document.addEventListener("DOMContentLoaded", () =>{
+    createSquares()
+    getNewWord()
+
+    const guessedWords = [[]];
+    let availabeSpace = 1;
+    let word 
+    let guessedWordCount = 0;
+
+    const keys = document.querySelectorAll('.keyboard-row button')
+
+    
+    function getNewWord() {
+        fetch(
+          `https://wordsapiv1.p.rapidapi.com/words/?random=true&lettersMin=5&lettersMax=5`,
+          {
+            method: "GET",
+            headers: {
+              "x-rapidapi-host": "wordsapiv1.p.rapidapi.com",
+              "x-rapidapi-key": '5c4059231amsh2c158276ab11092p1e6c59jsn9eaa5b7dfea6',
+            },
+          }
+        )
+          .then((response) => {
+            return response.json();
+          })
+          .then((res) => {
+            word = res.word;
+          })
+          .catch((err) => {
+            console.error(err);
+          });
+      }
+
+
+    function getCurrentWordArr(){
+        const numberOfGuessedWords = guessedWords.length
+        return guessedWords[numberOfGuessedWords - 1]
+    }
+
+    function updateGuessedWords(letter){
+        const currentWordArr = getCurrentWordArr()
+
+        if (currentWordArr && currentWordArr.length < 5){
+            currentWordArr.push(letter)
+
+            const availableSpaceEl = document.getElementById(String(availabeSpace))
+            availabeSpace = availabeSpace + 1;
+
+            availableSpaceEl.textContent = letter;
+        }
+    }
+
+    for (let i = 0; i < keys.length; i++) {
+        keys[i].onclick = ({ target }) => {
+            const letter = target.getAttribute('data-key')
+
+            if ( letter === 'Enter') {
+                handleSumbitWord()
+                return;
+            }
+
+            if (letter === 'del'){
+                handleDelete()
+                return;
+            }
+
+            updateGuessedWords(letter)
+        }
+        
+    }
+
+    function handleDelete() {
+        const currentWordArr = getCurrentWordArr()
+        const removedLetter = currentWordArr.pop()
+
+        guessedWords[guessedWords.length - 1] = currentWordArr;
+
+        const lastLetterEl = document.getElementById(String(availabeSpace - 1))
+
+        lastLetterEl.textContent = ''
+        availabeSpace = availabeSpace - 1
+    }
+
+
+
+
+    function handleSumbitWord() {
+        const currentWordArr = getCurrentWordArr()
+        if (currentWordArr.length !=5){
+            window.alert("Word Must Be 5 Letters")
+        }
+
+        const currentWord = currentWordArr.join('')
+
+        function getTileColor(letter, index) {
+            const isCorrectLetter  = word.includes(letter)
+
+            if(!isCorrectLetter) {
+                return 'rgb(58, 58, 60)'
+            }
+
+            const letterInThatPosition = word.charAt(index)
+            const isCorrectPosition = letter === letterInThatPosition
+
+            if (isCorrectPosition){
+                return 'rgb(83, 141, 78)';
+            }
+
+            return 'rgb(181, 159, 59)'
+        }
+
+        fetch(
+            `https://wordsapiv1.p.rapidapi.com/words/${currentWord}`,
+            {
+              method: "GET",
+              headers: {
+                "x-rapidapi-host": "wordsapiv1.p.rapidapi.com",
+                "x-rapidapi-key": '5c4059231amsh2c158276ab11092p1e6c59jsn9eaa5b7dfea6',
+              },
+            }
+          ).then((res) =>{
+              if (!res.ok){
+                  throw Error()
+              }
+              const firstLetterId = guessedWordCount * 5 + 1;
+        const interval = 200;
+        currentWordArr.forEach((letter, index) => {
+          setTimeout(() => {
+            const tileColor = getTileColor(letter, index);
+
+            const letterId = firstLetterId + index;
+            const letterEl = document.getElementById(letterId);
+            letterEl.classList.add("animate__flipInX");
+            letterEl.style = `background-color:${tileColor};border-color:${tileColor}`;
+          }, interval * index);
+        });
+
+        guessedWordCount += 1;
+
+        if (currentWord === word) {
+            window.alert('Congratulations')
+        }
+
+        if (guessedWords.length === 6){
+            window.alert(`You Lose. The word is ${word}`)
+        }
+
+        guessedWords.push([])
+          }).catch(() =>{
+              window.alert('Please use a real word!')
+          })
+    }
+
+
+  function createSquares() {
+    const gameBoard = document.getElementById("board");
+
+    for (let index = 0; index < 30; index++) {
+      let square = document.createElement("div");
+      square.classList.add("square");
+      square.classList.add("animate__animated");
+      square.setAttribute("id", index + 1);
+      gameBoard.appendChild(square);
+    }
+  }
+});
